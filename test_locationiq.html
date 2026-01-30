@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test LocationIQ</title>
+</head>
+
+<body>
+    <div id="output"></div>
+    <script>
+        const LOCATIONIQ_KEY = 'pk.d52886ad23ebf6a01e455bb91b89bcc1';
+        const query = "Las Palmas de Gran Canaria";
+        const url = `https://api.locationiq.com/v1/autocomplete?key=${LOCATIONIQ_KEY}&q=${encodeURIComponent(query)}&limit=5&tag=place:city,place:town,place:village`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+                console.log(data);
+            })
+            .catch(e => {
+                document.getElementById('output').textContent = "Error: " + e;
+            });
+    </script>
+</body>
+
+</html>

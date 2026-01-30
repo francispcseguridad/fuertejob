@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "SSH FS - fuertejob",
+			"uri": "ssh://fuertejob/httpdocs"
+		}
+	],
+	"settings": {
+		"sshfs.configs": [
+			{
+				"name": "FuerteJob",
+				"host": "fuertejob.com",
+				"root": "/httpdocs",
+				"username": "fuertejob.com_cy6zv29hsg6",
+				"password": "QgDmdCor107syq%~"
+			}
+		]
+	}
+}
