@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Models\CandidateSelection;
 use App\Models\JobSector;
 
@@ -62,6 +63,37 @@ class WorkerProfile extends Model
         'province',
         'island',
     ];
+
+    protected function profileImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if ($this->isCvPreviewPath($value)) {
+                    return 'img/workers/default-avatar.svg';
+                }
+
+                return $value ?: 'img/workers/default-avatar.svg';
+            }
+        );
+    }
+
+    private function isCvPreviewPath(?string $value): bool
+    {
+        if (!$value) {
+            return false;
+        }
+
+        $normalized = strtolower($value);
+
+        return str_contains($normalized, '.pdf')
+            || str_contains($normalized, 'private_cvs')
+            || str_contains($normalized, 'cvs/');
+    }
+
+    public function hasCustomProfileImage(): bool
+    {
+        return (bool) $this->getRawOriginal('profile_image_url');
+    }
 
     // ====================================================================
     // ACCESSORES

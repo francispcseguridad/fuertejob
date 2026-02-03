@@ -51,6 +51,7 @@ use App\Http\Controllers\Admin\CommercialContactController as AdminCommercialCon
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\PublicInmobiliariaController;
 use App\Http\Controllers\PublicAcademiaController;
+use App\Http\Controllers\PublicColaboradoresController;
 use App\Http\Controllers\PublicSocialNetworkController;
 use App\Http\Controllers\CommercialContactController;
 use App\Http\Controllers\ContactController;
@@ -83,8 +84,9 @@ Route::get('/empresa/gracias', function () {
 
 Route::get('/empleos', [PublicJobSearchController::class, 'index'])->name('public.jobs.index');
 Route::get('/ofertas/{id}', [PublicJobSearchController::class, 'show'])->name('public.jobs.show');
-Route::get('/inmobiliarias', [PublicInmobiliariaController::class, 'index'])->name('public.inmobiliarias.index');
+Route::get('/vivienda', [PublicInmobiliariaController::class, 'index'])->name('public.inmobiliarias.index');
 Route::get('/formacion', [PublicAcademiaController::class, 'index'])->name('public.academias.index');
+Route::get('/colaboradores', [PublicColaboradoresController::class, 'index'])->name('public.colaboradores.index');
 Route::get('/redes-sociales', [PublicSocialNetworkController::class, 'index'])->name('public.social_networks.index');
 Route::get('/contacto', [ContactController::class, 'create'])->name('contact.create');
 Route::post('/contacto', [ContactController::class, 'store'])->name('contact.store');
@@ -94,6 +96,8 @@ Route::get('/novedades', [PortalController::class, 'blog'])->name('blog.index');
 Route::get('/novedades/{slug}', [PortalController::class, 'blogShow'])->name('blog.show');
 Route::get('/info/{slug}', [PortalController::class, 'info'])->name('info.show');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+
+// Autocompletado público de localidades (local DB y/o LocationIQ).
 Route::get('/api/localidades/search', [LocalidadController::class, 'search'])->name('api.localidades.search');
 
 // Chatbot público (proxy server-side a Gemini)
@@ -138,6 +142,7 @@ Route::middleware(['auth', 'rol:admin'])->prefix('administracion')->name('admin.
     Route::resource('candidatos', WorkerManagementController::class)->except(['create', 'store']);
     Route::put('candidatos/{solicitante}/password', [WorkerManagementController::class, 'updatePassword'])->name('candidatos.password.update');
     Route::post('candidatos/{candidato}/cv/reanalyze', [WorkerManagementController::class, 'reanalyzeCv'])->name('candidatos.cv.reanalyze');
+    Route::post('candidatos/{candidato}/photo/delete', [WorkerManagementController::class, 'deleteProfilePhoto'])->name('candidatos.photo.delete');
     Route::post('candidatos/{candidato}/email', [WorkerManagementController::class, 'sendEmail'])->name('candidatos.email.send');
 
     Route::resource('empresas', CompanyManagementController::class)->except(['create', 'store']);

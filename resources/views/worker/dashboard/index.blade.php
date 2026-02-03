@@ -26,14 +26,9 @@
                             </div>
 
                             {{-- Foto de Perfil Redonda --}}
-                            @if ($profile->profile_image_url)
-                                <img src="{{ asset($profile->profile_image_url) }}" alt="Foto de Perfil"
-                                    class="rounded-circle border border-4 border-white shadow-sm"
-                                    style="width: 80px; height: 80px; object-fit: cover;">
-                            @else
-                                {{-- Icono si no hay foto (asumiendo FontAwesome) --}}
-                                <i class="fas fa-user-tie fa-4x text-white opacity-90"></i>
-                            @endif
+                            <img src="{{ asset($profile->profile_image_url) }}" alt="Foto de Perfil"
+                                class="rounded-circle border border-4 border-white shadow-sm"
+                                style="width: 80px; height: 80px; object-fit: cover;">
                         </div>
                     </div>
 

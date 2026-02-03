@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use App\Models\User;
 use App\Models\WorkerProfile;
+use App\Utils\YearExtractor;
 use App\Models\Cv; // Importación del modelo CV
 use App\Models\Experience;
 use App\Models\Education;
@@ -79,7 +80,7 @@ class WorkerProfileController extends Controller
 
         // CRÍTICO: Asegurarse de que el perfil exista antes de intentar cargar relaciones.
         if ($profile) {
-            $experiences = $profile->experiences()->latest('start_date')->take(3)->get();
+            $experiences = $profile->experiences()->latest('start_year')->take(3)->get();
             $education = $profile->educations()->latest('start_date')->take(3)->get();
         } else {
             $experiences = new Collection();
@@ -401,94 +402,6 @@ class WorkerProfileController extends Controller
     }
 
     /**
-     * Genera la imagen de perfil a partir de la primera página del CV.
-     */
-    public function generateProfileImageFromCv()
-    {
-        $profile = Auth::user()->workerProfile;
-
-        if (!$profile) {
-            return back()->with('error', 'Perfil no encontrado.');
-        }
-
-        $primaryCv = $this->getPrimaryCvDocument($profile);
-
-        if (!$primaryCv) {
-            return back()->with('error', 'No tienes un CV cargado para extraer la imagen.');
-        }
-
-        $publicUrl = $this->extraerImagenCV($primaryCv->file_path, $profile->id);
-
-        if ($publicUrl) {
-            $profile->update(['profile_image_url' => $publicUrl]);
-            return back()->with('success', 'Imagen de perfil actualizada desde tu CV.');
-        } else {
-            return back()->with('error', 'No se pudo extraer la imagen del CV. Verifica que el archivo no esté dañado o protegido.');
-        }
-    }
-
-    /**
-     * Helper: Extrae imagen del CV usando Imagick / Ghostscript
-     */
-    private function extraerImagenCV(string $pathCV, int $id)
-    {
-        try {
-            // Obtenemos la ruta absoluta del archivo CV almacenado
-            $fullPath = Storage::disk('private_cvs')->path($pathCV);
-
-            if (!file_exists($fullPath)) {
-                \Log::error("No se encuentra el archivo CV en: {$fullPath}");
-                return null;
-            }
-
-            // Nombre de salida
-            $fileName = 'foto-' . $id . '.jpg';
-            $outputPath = public_path('img/workers/' . $fileName);
-            $outputDir = dirname($outputPath);
-
-            if (!file_exists($outputDir)) {
-                mkdir($outputDir, 0755, true);
-            }
-
-            // Intento 1: Imagick directo
-            try {
-                if (class_exists('Imagick')) {
-                    $imagick = new \Imagick();
-                    $imagick->readImage($fullPath . '[0]');
-                    $imagick->setImageFormat('jpg');
-                    $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
-                    $imagick->writeImage($outputPath);
-                    $imagick->clear();
-                    $imagick->destroy();
-
-                    return 'img/workers/' . $fileName;
-                }
-            } catch (\Exception $e) {
-                \Log::warning("Imagick falló en WorkerProfileController ({$e->getMessage()}). Probando Ghostscript fallback.");
-            }
-
-            // Intento 2: Fallback Ghostscript
-            $cmdInput = escapeshellarg($fullPath);
-            $cmdOutput = escapeshellarg($outputPath);
-            $command = "gs -dNOPAUSE -dBATCH -sDEVICE=jpeg -dFirstPage=1 -dLastPage=1 -sOutputFile={$cmdOutput} -r150 {$cmdInput} 2>&1";
-
-            $output = [];
-            $returnVar = 0;
-            exec($command, $output, $returnVar);
-
-            if ($returnVar === 0 && file_exists($outputPath)) {
-                return 'img/workers/' . $fileName;
-            } else {
-                \Log::error("Ghostscript fallback falló. Retorno: {$returnVar}. Salida: " . implode(" | ", $output));
-                return null;
-            }
-        } catch (\Exception $e) {
-            \Log::error("Excepción general en extraerImagenCV (WorkerProfileController): " . $e->getMessage());
-            return null;
-        }
-    }
-
-    /**
      * Muestra la vista de edición simplificada (única pantalla).
      */
     public function simplifiedEdit()
@@ -528,8 +441,8 @@ class WorkerProfileController extends Controller
                         $profile->experiences()->create([
                             'job_title' => $exp['job_title'],
                             'company_name' => $exp['company_name'],
-                            'start_date' => $exp['start_date'],
-                            'end_date' => isset($exp['is_current']) ? null : ($exp['end_date'] ?? null),
+                            'start_year' => YearExtractor::extractYear($exp['start_year'] ?? null),
+                            'end_year' => isset($exp['is_current']) ? null : YearExtractor::extractYear($exp['end_year'] ?? null),
                             'description' => $exp['description'] ?? null,
                         ]);
                     }

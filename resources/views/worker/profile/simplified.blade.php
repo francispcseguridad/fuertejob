@@ -419,12 +419,14 @@
                     <input type="text" name="experiences[${expIndex}][company_name]" class="form-control form-control-lg fs-6" required placeholder="Ej: Hotel Fuerteventura">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Desde</label>
-                    <input type="date" name="experiences[${expIndex}][start_date]" class="form-control" required>
+                    <label class="form-label">Año de Inicio</label>
+                    <input type="number" min="1900" max="2100" name="experiences[${expIndex}][start_year]"
+                        class="form-control" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Hasta</label>
-                    <input type="date" name="experiences[${expIndex}][end_date]" class="form-control end-date-input bg-light opacity-50" disabled>
+                    <label class="form-label">Año de Fin</label>
+                    <input type="number" min="1900" max="2100" name="experiences[${expIndex}][end_year]"
+                        class="form-control end-date-input bg-light opacity-50" disabled>
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
                     <div class="form-check form-switch mb-2">

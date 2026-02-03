@@ -105,11 +105,11 @@
                                                     </h6>
                                                     <p class="text-muted mb-2">
                                                         <i class="bi bi-calendar-event me-1"></i>
-                                                        {{ $experience->start_date->format('d/m/Y') }} -
+                                                        {{ $experience->start_year ?? '—' }} -
                                                         @if ($experience->is_current)
                                                             <span class="badge bg-success">Actualidad</span>
                                                         @else
-                                                            {{ optional($experience->end_date)->format('d/m/Y') }}
+                                                            {{ $experience->end_year ?? '—' }}
                                                         @endif
                                                     </p>
                                                     @if ($experience->description)
@@ -132,8 +132,8 @@
                                                         data-id="{{ $experience->id }}"
                                                         data-job-title="{{ $experience->job_title }}"
                                                         data-company-name="{{ $experience->company_name }}"
-                                                        data-start-date="{{ $experience->start_date->format('Y-m-d') }}"
-                                                        data-end-date="{{ optional($experience->end_date)->format('Y-m-d') }}"
+                                                        data-start-year="{{ $experience->start_year }}"
+                                                        data-end-year="{{ $experience->end_year }}"
                                                         data-is-current="{{ $experience->is_current ? '1' : '0' }}"
                                                         data-description="{{ $experience->description }}">
                                                         <i class="bi bi-pencil-square text-warning me-2"></i> Editar
@@ -228,20 +228,22 @@
                                 @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="create_start_date" class="form-label fw-bold">Fecha de Inicio *</label>
-                                <input type="date" class="form-control @error('start_date') is-invalid @enderror"
-                                    id="create_start_date" name="start_date" value="{{ old('start_date') }}" required>
-                                @error('start_date')
+                                <label for="create_start_year" class="form-label fw-bold">Año de Inicio *</label>
+                                <input type="number" min="1900" max="2100"
+                                    class="form-control @error('start_year') is-invalid @enderror"
+                                    id="create_start_year" name="start_year" value="{{ old('start_year') }}" required>
+                                @error('start_year')
                                     <div class="invalid-feedback">
                                         <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ $message }}
                                     </div>
                                 @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="create_end_date" class="form-label fw-bold">Fecha de Fin</label>
-                                <input type="date" class="form-control @error('end_date') is-invalid @enderror"
-                                    id="create_end_date" name="end_date" value="{{ old('end_date') }}">
-                                @error('end_date')
+                                <label for="create_end_year" class="form-label fw-bold">Año de Fin</label>
+                                <input type="number" min="1900" max="2100"
+                                    class="form-control @error('end_year') is-invalid @enderror"
+                                    id="create_end_year" name="end_year" value="{{ old('end_year') }}">
+                                @error('end_year')
                                     <div class="invalid-feedback">
                                         <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ $message }}
                                     </div>
@@ -304,13 +306,14 @@
                                     required placeholder="Nombre de la empresa">
                             </div>
                             <div class="col-md-6">
-                                <label for="edit_start_date" class="form-label fw-bold">Fecha de Inicio *</label>
-                                <input type="date" class="form-control" id="edit_start_date" name="start_date"
-                                    required>
+                                <label for="edit_start_year" class="form-label fw-bold">Año de Inicio *</label>
+                                <input type="number" min="1900" max="2100" class="form-control" id="edit_start_year"
+                                    name="start_year" required>
                             </div>
                             <div class="col-md-6">
-                                <label for="edit_end_date" class="form-label fw-bold">Fecha de Fin</label>
-                                <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                                <label for="edit_end_year" class="form-label fw-bold">Año de Fin</label>
+                                <input type="number" min="1900" max="2100" class="form-control" id="edit_end_year"
+                                    name="end_year">
                             </div>
                             <div class="col-12">
                                 <div class="form-check">
@@ -426,17 +429,17 @@
                 // ------------------------------------------
                 $('#create_is_current').on('change', function() {
                     if ($(this).is(':checked')) {
-                        $('#create_end_date').val('').prop('disabled', true);
+                        $('#create_end_year').val('').prop('disabled', true);
                     } else {
-                        $('#create_end_date').prop('disabled', false);
+                        $('#create_end_year').prop('disabled', false);
                     }
                 });
 
                 $('#edit_is_current').on('change', function() {
                     if ($(this).is(':checked')) {
-                        $('#edit_end_date').val('').prop('disabled', true);
+                        $('#edit_end_year').val('').prop('disabled', true);
                     } else {
-                        $('#edit_end_date').prop('disabled', false);
+                        $('#edit_end_year').prop('disabled', false);
                     }
                 });
 
@@ -503,8 +506,8 @@
                     const experienceId = $(this).data('id');
                     const jobTitle = $(this).data('job-title');
                     const companyName = $(this).data('company-name');
-                    const startDate = $(this).data('start-date');
-                    const endDate = $(this).data('end-date');
+                    const startYear = $(this).data('start-year');
+                    const endYear = $(this).data('end-year');
                     const isCurrent = $(this).data('is-current');
                     const description = $(this).data('description');
                     const updateUrl = baseUrl + '/' + experienceId;
@@ -512,16 +515,16 @@
                     $('#editExperienceForm').attr('action', updateUrl);
                     $('#edit_job_title').val(jobTitle);
                     $('#edit_company_name').val(companyName);
-                    $('#edit_start_date').val(startDate);
-                    $('#edit_end_date').val(endDate);
+                    $('#edit_start_year').val(startYear);
+                    $('#edit_end_year').val(endYear);
                     $('#edit_description').val(description);
 
                     if (isCurrent == '1') {
                         $('#edit_is_current').prop('checked', true);
-                        $('#edit_end_date').prop('disabled', true);
+                        $('#edit_end_year').val('').prop('disabled', true);
                     } else {
                         $('#edit_is_current').prop('checked', false);
-                        $('#edit_end_date').prop('disabled', false);
+                        $('#edit_end_year').prop('disabled', false);
                     }
 
                     $('#editExperienceModalLabel').html(

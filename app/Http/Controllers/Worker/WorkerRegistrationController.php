@@ -23,6 +23,7 @@ use App\Models\Skill;
 use App\Models\Tool;
 use App\Models\Language;
 use App\Services\GeminiCvParserService;
+use App\Utils\YearExtractor;
 
 class WorkerRegistrationController extends Controller
 {
@@ -233,18 +234,6 @@ class WorkerRegistrationController extends Controller
                 // No lanzamos excepción, continuamos
             }
 
-            // 8.5. EXTRACCIÓN DE FOTO/IMAGEN DEL CV
-            try {
-                // Llamamos a la función local
-                $publicUrl = $this->extraerImagenCV($cvFilePath, $profile->id);
-                if ($publicUrl) {
-                    $profile->update(['profile_image_url' => $publicUrl]);
-                    Log::info("Imagen de CV generada y guardada: {$publicUrl}");
-                }
-            } catch (\Exception $e) {
-                Log::warning("Fallo al generar imagen del CV con Imagick: " . $e->getMessage());
-            }
-
             // 9. INSERCIÓN DE DATOS ESTRUCTURADOS (NUEVA TRANSACCIÓN INDEPENDIENTE)
             if ($cvData) {
                 DB::transaction(function () use ($profile, $cvData) {
@@ -260,12 +249,18 @@ class WorkerRegistrationController extends Controller
                     $profile->experiences()->delete();
                     if (isset($cvData['experiences']) && is_array($cvData['experiences'])) {
                         foreach ($cvData['experiences'] as $experience) {
+                            $startRaw = $cleanDate($experience, 'start_date');
+                            $endRaw = $cleanDate($experience, 'end_date');
+                            [$rangeStart, $rangeEnd] = YearExtractor::extractYearsFromRange($startRaw);
+                            $startYear = $rangeStart ?: YearExtractor::extractYear($startRaw);
+                            $endYear = $rangeEnd ?: YearExtractor::extractYear($endRaw);
+
                             Experience::create([
                                 'worker_profile_id' => $profile->id,
                                 'job_title' => $experience['title'] ?? 'Sin título',
                                 'company_name' => $experience['company'] ?? 'Sin empresa',
-                                'start_date' => $cleanDate($experience, 'start_date') ?? Carbon::now()->format('Y-m-d'),
-                                'end_date' => $cleanDate($experience, 'end_date'),
+                                'start_year' => $startYear,
+                                'end_year' => $endYear,
                                 'description' => $experience['description'] ?? null,
                             ]);
                         }
@@ -279,7 +274,7 @@ class WorkerRegistrationController extends Controller
                                 'institution' => $education['institution'] ?? 'Sin institución',
                                 'degree' => $education['degree'] ?? 'Sin titulación',
                                 'field_of_study' => $education['field_of_study'] ?? null,
-                                'start_date' => $cleanDate($education, 'start_date') ?? Carbon::now()->format('Y-m-d'),
+                                'start_date' => $cleanDate($education, 'start_date'),
                                 'end_date' => $cleanDate($education, 'end_date'),
                             ]);
                         }
@@ -373,97 +368,5 @@ class WorkerRegistrationController extends Controller
             return $language->id;
         })->filter()->all();
         $profile->languages()->sync($languageIds);
-    }
-
-    /**
-     * Genera una imagen (thumbnail) de la primera página del CV usando Imagick.
-     * Esta imagen se guarda en public/img/workers para usarla como "foto de perfil" provisional.
-     */
-    private function extraerImagenCV(string $pathCV, int $id)
-    {
-        try {
-            if (!class_exists('Imagick')) {
-                Log::warning("La extensión Imagick no está instalada en el servidor.");
-                return null;
-            }
-
-            // Obtenemos la ruta absoluta del archivo CV almacenado
-            // Nota: $pathCV es relativo al disco 'private_cvs'
-            $fullPath = Storage::disk('private_cvs')->path($pathCV);
-
-            if (!file_exists($fullPath)) {
-                Log::error("No se encuentra el archivo CV en: {$fullPath}");
-                return null;
-            }
-
-            $imagick = new \Imagick();
-
-            // Leemos la primera página [0]
-            // IMPORTANTE: Para PDFs, Imagick requiere Ghostscript instalado en el sistema
-            $imagick->readImage($fullPath . '[0]');
-
-            // Establecemos formato y calidad
-            $imagick->setImageFormat('jpg');
-            // $imagick->setImageCompressionQuality(80); // Opcional
-
-            // Flatten por si tiene transparencias
-            $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
-
-            // Definimos ruta de salida pública
-            $fileName = 'foto-' . $id . '.jpg';
-            $outputPath = public_path('img/workers/' . $fileName);
-            $outputDir = dirname($outputPath);
-
-            // Aseguramos que el directorio exista
-            if (!file_exists($outputDir)) {
-                mkdir($outputDir, 0755, true);
-            }
-
-            // Guardamos la imagen
-            $imagick->writeImage($outputPath);
-
-            // Limpieza
-            $imagick->clear();
-            $imagick->destroy();
-
-            // Devolvemos la ruta relativa para guardar en BD
-            return 'img/workers/' . $fileName;
-        } catch (\Exception $e) {
-            Log::warning("Imagick falló ({$e->getMessage()}). Intentando fallback con Ghostscript directo.");
-
-            // --- FALLBACK: GHOSTSCRIPT DIRECTO ---
-            // Si Imagick falla por políticas de seguridad (policy.xml), intentamos llamar a 'gs' directamente.
-            // Comando: gs -dNOPAUSE -dBATCH -sDEVICE=jpeg -dFirstPage=1 -dLastPage=1 -sOutputFile=SALIDA -r150 ENTRADA
-            try {
-                // Definimos las rutas de nuevo por si acaso (scope)
-                $fullPath = Storage::disk('private_cvs')->path($pathCV);
-                $fileName = 'foto-' . $id . '.jpg';
-                $outputPath = public_path('img/workers/' . $fileName);
-                $outputDir = dirname($outputPath);
-                if (!file_exists($outputDir)) mkdir($outputDir, 0755, true);
-
-                // Escapamos argumentos para seguridad
-                $cmdInput = escapeshellarg($fullPath);
-                $cmdOutput = escapeshellarg($outputPath);
-
-                // Ejecutamos Ghostscript
-                $command = "gs -dNOPAUSE -dBATCH -sDEVICE=jpeg -dFirstPage=1 -dLastPage=1 -sOutputFile={$cmdOutput} -r150 {$cmdInput} 2>&1";
-
-                $output = [];
-                $returnVar = 0;
-                exec($command, $output, $returnVar);
-
-                if ($returnVar === 0 && file_exists($outputPath)) {
-                    Log::info("Imagen extraída correctamente con Ghostscript fallback.");
-                    return 'img/workers/' . $fileName;
-                } else {
-                    Log::error("Ghostscript fallback falló. Retorno: {$returnVar}. Salida: " . implode(" | ", $output));
-                    return null;
-                }
-            } catch (\Exception $ex) {
-                Log::error("Excepción en fallback Ghostscript: " . $ex->getMessage());
-                return null;
-            }
-        }
     }
 }

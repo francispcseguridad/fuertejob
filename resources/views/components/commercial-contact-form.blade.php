@@ -11,7 +11,11 @@
 <div class="card border-0 shadow-sm rounded-4">
     <div class="card-body p-4">
         <div class="d-flex flex-column gap-3">
-
+            <div>
+                <div class="text-uppercase small text-muted fw-semibold">{{ $originLabel }}</div>
+                <h5 class="fw-bold mb-1">{{ $formTitle }}</h5>
+                <p class="text-muted mb-0">{{ $formDescription }}</p>
+            </div>
 
             @if (session('commercial_contact_success'))
                 <div class="alert alert-success mb-0 shadow-sm" role="alert">
@@ -54,7 +58,7 @@
             <div class="col-md-12">
                 <label class="form-label fw-semibold" for="contact_detail">Detalle de la solicitud</label>
                 <textarea name="detail" id="contact_detail" class="form-control" rows="3"
-                    placeholder="Cuéntanos qué tipo de campaña o anuncio necesitas">{{ old('detail') }}</textarea>
+                    placeholder="Escribe aquí tu mensaje" required>{{ old('detail') }}</textarea>
                 @error('detail')
                     <small class="text-danger">{{ $message }}</small>
                 @enderror
@@ -65,7 +69,7 @@
                 <div class="input-group">
                     <span class="input-group-text bg-light text-dark fw-semibold">¿Cuánto es
                         {{ $captchaQuestion ?? '2 + 3' }}?</span>
-                    <input type="text" name="math_captcha" id="math_captcha" class="form-control"
+                    <input type="number" name="math_captcha" id="math_captcha" class="form-control"
                         placeholder="Resultado" value="{{ old('math_captcha') }}" required>
                 </div>
                 @error('math_captcha')
@@ -74,7 +78,7 @@
             </div>
 
             <div class="col-12 text-end">
-                <button type="submit" class="btn btn-primary px-4">Solicitar información</button>
+                <button type="submit" class="btn btn-primary px-4">{{ $buttonText }}</button>
             </div>
         </form>
     </div>

@@ -347,10 +347,16 @@
                                         <div class="d-flex gap-3 mb-4 border-start border-3 border-primary ps-3">
                                             <div>
                                                 <h6 class="fw-bold mb-1">{{ $exp->position }}</h6>
-                                                <p class="text-primary small mb-1 fw-semibold">{{ $exp->job_title }}</p>
+                                                <p class="text-primary small mb-1 fw-semibold">{{ $exp->job_title }} -
+                                                    {{ $exp->company_name }}
+                                                </p>
                                                 <small class="text-muted d-block mb-2">
-                                                    {{ \Carbon\Carbon::parse($exp->start_date)->isoFormat('MMM YYYY') }} -
-                                                    {{ $exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->isoFormat('MMM YYYY') : 'Actualidad' }}
+                                                    {{ $exp->start_year ?? '—' }} -
+                                                    @if ($exp->end_year)
+                                                        {{ $exp->end_year }}
+                                                    @else
+                                                        <span class="badge bg-success rounded-pill px-2">Actualidad</span>
+                                                    @endif
                                                 </small>
                                                 <p class="small text-secondary mb-0">{{ $exp->description }}</p>
                                             </div>

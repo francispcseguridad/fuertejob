@@ -140,16 +140,16 @@
                         {{-- Experiencia Laboral --}}
                         <h5 class="fw-bold text-dark mt-5 mb-3 border-bottom pb-2"><i
                                 class="bi bi-briefcase-fill me-2"></i>Experiencia Laboral</h5>
-                        @forelse($worker->experiences->sortByDesc('start_date') as $job)
+                        @forelse($worker->experiences->sortByDesc('start_year') as $job)
                             <div class="mb-3 border-start border-3 ps-3 border-primary">
                                 <h6 class="fw-semibold mb-0">{{ $job->title }}</h6>
                                 <p class="mb-1 small text-dark">{{ $job->company_name }}</p>
                                 <p class="mb-1 small text-muted">
-                                    {{ \Carbon\Carbon::parse($job->start_date)->format('M Y') }} -
-                                    @if ($job->is_current)
-                                        Presente
+                                    {{ $job->start_year ?? '—' }} -
+                                    @if ($job->end_year)
+                                        {{ $job->end_year }}
                                     @else
-                                        {{ \Carbon\Carbon::parse($job->end_date)->format('M Y') }}
+                                        Presente
                                     @endif
                                 </p>
                                 <p class="small text-secondary">{{ $job->description }}</p>

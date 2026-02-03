@@ -25,7 +25,7 @@ class WorkerExperienceController extends Controller
             return redirect()->route('worker.dashboard')->with('error', 'Debes completar tu perfil para gestionar experiencias.');
         }
 
-        $experiences = $profile->experiences()->orderByDesc('start_date')->get();
+        $experiences = $profile->experiences()->orderByDesc('start_year')->get();
 
         return view('worker.experiences.index', compact('profile', 'experiences'));
     }
@@ -50,13 +50,12 @@ class WorkerExperienceController extends Controller
     {
         // 1. Validar datos
         $validatedData = $request->validate([
-            // Usaremos los nombres de columna job_title y company_name para coincidir con la base de datos
             'job_title' => 'required|string|max:255',
             'company_name' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_year' => 'required|integer|min:1900|max:2100',
+            'end_year' => 'nullable|integer|gte:start_year|max:2100',
             'description' => 'nullable|string',
-            'is_current' => 'nullable|boolean', // El campo en la validación debe ser como está en la DB
+            'is_current' => 'nullable|boolean',
         ]);
 
         $profile = Auth::user()->workerProfile;
@@ -67,14 +66,18 @@ class WorkerExperienceController extends Controller
 
         // 2. Manejar checkbox is_current: si está marcado, end_date es nulo
         if ($request->has('is_current')) {
-            $validatedData['end_date'] = null;
-        } else {
-            // Eliminar 'is_current' para que no interfiera con Mass Assignment si no existe en la tabla Experience
-            unset($validatedData['is_current']);
+            $validatedData['end_year'] = null;
         }
 
-        // 3. Crear experiencia asociada al perfil
-        $profile->experiences()->create($validatedData);
+        unset($validatedData['is_current']);
+
+        $profile->experiences()->create([
+            'job_title' => $validatedData['job_title'],
+            'company_name' => $validatedData['company_name'],
+            'start_year' => $validatedData['start_year'],
+            'end_year' => $validatedData['end_year'],
+            'description' => $validatedData['description'] ?? null,
+        ]);
 
         return redirect()->route('worker.experiences.index')->with('success', 'Experiencia añadida con éxito.');
     }
@@ -108,20 +111,25 @@ class WorkerExperienceController extends Controller
         $validatedData = $request->validate([
             'job_title' => 'required|string|max:255',
             'company_name' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_year' => 'required|integer|min:1900|max:2100',
+            'end_year' => 'nullable|integer|gte:start_year|max:2100',
             'description' => 'nullable|string',
             'is_current' => 'nullable|boolean',
         ]);
 
-        // 1. Manejar checkbox is_current: si está marcado, end_date es nulo
         if ($request->has('is_current')) {
-            $validatedData['end_date'] = null;
-        } else {
-            unset($validatedData['is_current']);
+            $validatedData['end_year'] = null;
         }
 
-        $experience->update($validatedData);
+        unset($validatedData['is_current']);
+
+        $experience->update([
+            'job_title' => $validatedData['job_title'],
+            'company_name' => $validatedData['company_name'],
+            'start_year' => $validatedData['start_year'],
+            'end_year' => $validatedData['end_year'],
+            'description' => $validatedData['description'] ?? null,
+        ]);
 
         // Respuesta AJAX
         if ($request->ajax() || $request->wantsJson()) {

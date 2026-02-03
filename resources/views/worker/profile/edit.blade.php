@@ -275,7 +275,7 @@
                                 <div class="col-md-8 mb-3">
                                     <label for="profile_picture" class="form-label">Foto de Perfil</label>
 
-                                    @if ($profile->profile_image_url)
+                                    @if ($profile->hasCustomProfileImage())
                                         <div class="mb-3">
                                             <img src="{{ asset($profile->profile_image_url) }}"
                                                 alt="Foto de Perfil Actual"

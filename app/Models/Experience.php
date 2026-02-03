@@ -15,15 +15,11 @@ class Experience extends Model
         'worker_profile_id',
         'job_title',
         'company_name',
-        'start_date',
-        'end_date',
+        'start_year',
+        'end_year',
         'description',
     ];
 
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-    ];
 
     /**
      * IMPORTANTE: Se eliminó la propiedad $casts para 'start_date' y 'end_date'.

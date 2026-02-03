@@ -13,6 +13,7 @@ use App\Http\Controllers\MailsController;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
+use App\Services\GeminiCvParserService;
 
 class WorkerManagementController extends Controller
 {
@@ -237,6 +238,64 @@ class WorkerManagementController extends Controller
 
         return redirect()->route('admin.candidatos.index')
             ->with('success', 'Solicitante eliminado correctamente.');
+    }
+
+    public function reanalyzeCv(User $candidato, GeminiCvParserService $geminiCvParser)
+    {
+        $profile = $candidato->workerProfile;
+
+        if (!$profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El candidato no tiene perfil para re-analizar.'
+            ], 404);
+        }
+
+        $primaryCv = Cv::where('worker_profile_id', $profile->id)
+            ->where('is_primary', true)
+            ->latest()
+            ->first();
+
+        if (!$primaryCv) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró CV activo para este candidato.'
+            ], 404);
+        }
+
+        try {
+            $geminiCvParser->analyzeCv($primaryCv);
+            return response()->json([
+                'success' => true,
+                'message' => 'CV re-analizado y datos actualizados.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Admin reanalyzeCV error for user {$candidato->id}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al re-analizar el CV: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteProfilePhoto(User $candidato)
+    {
+        $profile = $candidato->workerProfile;
+        if (!$profile) {
+            return response()->json(['success' => false, 'message' => 'El perfil no tiene datos.'], 404);
+        }
+
+        $photoPath = $profile->getRawOriginal('profile_image_url');
+        if ($photoPath) {
+            $fullPath = public_path($photoPath);
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+            }
+        }
+
+        $profile->update(['profile_image_url' => 'img/workers/default-avatar.svg']);
+
+        return response()->json(['success' => true, 'message' => 'Foto eliminada correctamente.']);
     }
 
     /**

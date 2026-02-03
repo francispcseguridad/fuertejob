@@ -54,4 +54,9 @@ return [
         'site_key' => env('RECAPTCHA_SITE_KEY'),
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),
     ],
+
+    'locationiq' => [
+        'key' => env('LOCATIONIQ_API_KEY'),
+        'base_url' => env('LOCATIONIQ_BASE_URL', 'https://api.locationiq.com/v1'),
+    ],
 ];

@@ -18,21 +18,21 @@
 
 <div class="row">
     <div class="col-md-6 mb-3">
-        <label for="start_date" class="form-label">Fecha de Inicio</label>
-        <input id="start_date" type="date" class="form-control @error('start_date') is-invalid @enderror"
-            name="start_date" value="{{ old('start_date', optional($experience->start_date)->format('Y-m-d')) }}"
-            required>
-        @error('start_date')
+        <label for="start_year" class="form-label">Año de Inicio</label>
+        <input id="start_year" type="number" min="1900" max="2100"
+            class="form-control @error('start_year') is-invalid @enderror" name="start_year"
+            value="{{ old('start_year', $experience->start_year) }}" required>
+        @error('start_year')
             <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
         @enderror
     </div>
 
     <div class="col-md-6 mb-3">
-        <label for="end_date" class="form-label">Fecha de Fin (si aplica)</label>
-        <input id="end_date_input" type="date" class="form-control @error('end_date') is-invalid @enderror"
-            name="end_date" value="{{ old('end_date', optional($experience->end_date)->format('Y-m-d')) }}"
-            {{ $experience->is_current ? 'disabled' : '' }}>
-        @error('end_date')
+        <label for="end_year" class="form-label">Año de Fin (si aplica)</label>
+        <input id="end_year_input" type="number" min="1900" max="2100"
+            class="form-control @error('end_year') is-invalid @enderror" name="end_year"
+            value="{{ old('end_year', $experience->end_year) }}" {{ $experience->is_current ? 'disabled' : '' }}>
+        @error('end_year')
             <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
         @enderror
     </div>
@@ -41,7 +41,7 @@
 <div class="form-check mb-4">
     <input class="form-check-input" type="checkbox" name="is_current" value="1" id="is_current_checkbox"
         {{ old('is_current', $experience->is_current) ? 'checked' : '' }}
-        onchange="document.getElementById('end_date_input').disabled = this.checked;">
+        onchange="document.getElementById('end_year_input').disabled = this.checked;">
     <label class="form-check-label" for="is_current_checkbox">
         Actualmente trabajo aquí
     </label>

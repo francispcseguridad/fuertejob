@@ -102,6 +102,9 @@
                                 <th
                                     class="px-4 py-3 text-secondary text-uppercase small fw-bold text-center d-none d-lg-table-cell">
                                     País</th>
+                                <th
+                                    class="px-4 py-3 text-secondary text-uppercase small fw-bold text-center d-none d-md-table-cell">
+                                    Fecha creación</th>
                                 <th class="px-4 py-3 text-center text-secondary text-uppercase small fw-bold">Estado</th>
                                 <th class="px-4 py-3 text-end text-secondary text-uppercase small fw-bold">Acciones</th>
                             </tr>
@@ -110,10 +113,20 @@
                             @forelse ($workers as $worker)
                                 <tr>
                                     <td class="px-4">
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-circle bg-primary-subtle text-primary me-3 rounded-circle d-flex align-items-center justify-content-center"
-                                                style="width: 40px; height: 40px;">
-                                                <i class="bi bi-person-fill fs-5"></i>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="text-center">
+                                                <img src="{{ asset($worker->workerProfile->profile_image_url ?? 'img/workers/default-avatar.svg') }}"
+                                                    alt="Foto {{ $worker->name }}" class="rounded-circle border shadow-sm"
+                                                    style="width: 48px; height: 48px; object-fit: cover;"
+                                                    data-default-avatar="{{ asset('img/workers/default-avatar.svg') }}"
+                                                    data-worker-id="{{ $worker->id }}"
+                                                    id="worker-avatar-{{ $worker->id }}">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-light rounded-circle mt-1 worker-photo-delete-btn"
+                                                    title="Eliminar foto" data-worker-id="{{ $worker->id }}"
+                                                    data-delete-url="{{ route('admin.candidatos.photo.delete', $worker) }}">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
                                             </div>
                                             <div>
                                                 <div class="fw-bold text-dark text-break">{{ $worker->name }}</div>
@@ -131,6 +144,11 @@
                                     </td>
                                     <td class="px-4 text-center d-none d-lg-table-cell">
                                         <span class="text-muted small">{{ $profile->country ?? '—' }}</span>
+                                    </td>
+                                    <td class="px-4 text-center d-none d-md-table-cell">
+                                        <span class="text-muted small">
+                                            {{ $worker->created_at?->format('d/m/Y H:i') ?? '—' }}
+                                        </span>
                                     </td>
                                     <td class="px-3 text-center">
                                         @if ($worker->email_verified_at)
@@ -150,7 +168,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5">
+                                    <td colspan="7" class="text-center py-5">
                                         <div class="empty-state">
                                             <i class="bi bi-people text-muted opacity-25" style="font-size: 3rem;"></i>
                                             <p class="text-muted mt-3">No se encontraron candidatos registrados.</p>
@@ -175,3 +193,60 @@
 
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.worker-photo-delete-btn');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+            buttons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const workerId = this.dataset.workerId;
+                    const url = this.dataset.deleteUrl;
+                    const avatar = document.getElementById('worker-avatar-' + workerId);
+
+                    Swal.fire({
+                        title: '¿Eliminar foto?',
+                        text: 'La imagen se reemplazará por el avatar genérico.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar',
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            return;
+                        }
+
+                        fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json',
+                                },
+                                body: JSON.stringify({}),
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    const defaultAvatar = avatar.dataset.defaultAvatar;
+                                    avatar.src = defaultAvatar;
+                                    Swal.fire('Foto eliminada',
+                                        'Se ha restaurado el avatar por defecto.',
+                                        'success');
+                                } else {
+                                    Swal.fire('Error', data.message ||
+                                        'No se pudo eliminar la foto.', 'error');
+                                }
+                            })
+                            .catch(() => {
+                                Swal.fire('Error', 'No se pudo completar la solicitud.',
+                                    'error');
+                            });
+                    });
+                });
+            });
+        });
+    </script>
+@endpush

@@ -133,7 +133,10 @@
                                     class="bi bi-box-arrow-in-right"></i>&nbsp;&nbsp;Acceso</a>
                         @endauth
                         <a class="btn btn-fuertejob display-4" href="{{ route('public.social_networks.index') }}"
-                            style="font-size: 12px !important;"><i class="bi bi-wifi"></i>&nbsp;&nbsp;Redes
+                            style="font-size: 12pt !important;">
+                            <i class="bi bi-facebook"></i>
+                            <i class="bi bi-instagram"></i>
+                            <i class="bi bi-whatsapp"></i>&nbsp;&nbsp;Redes
                         </a>
                     </div>
                 </div>
@@ -230,9 +233,16 @@
                     <a class="iconfont-wrapper text-white" href="{{ route('public.social_networks.index') }}"
                         target="_blank" rel="noopener noreferrer" title="Redes Sociales"
                         aria-label="Redes Sociales">
-                        Siguenos en nuestras redes
+                        <i class="bi bi-facebook"></i>
+                        <i class="bi bi-instagram"></i>
+                        <i class="bi bi-whatsapp"></i>&nbsp;&nbsp;
+                        <br>Siguenos en nuestras redes
                     </a>
-
+                    <br><br>
+                    <a href="https://www.holaislascanarias.com/" target="_blank" rel="noopener noreferrer">
+                        <img src="{{ asset('img/logoES_DarkMenu_0_0_0.png') }}" alt="Logo FuerteJob"
+                            class="img-fluid w-100">
+                    </a>
 
                 </div>
             </div>

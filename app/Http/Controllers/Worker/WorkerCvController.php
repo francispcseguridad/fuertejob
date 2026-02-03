@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Worker;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -12,8 +11,6 @@ use Illuminate\Support\Facades\Storage;
 // --- IMPORTACIONES ---
 use App\Models\WorkerProfile;
 use App\Models\Cv;
-use App\Models\Experience;
-use App\Models\Education;
 use App\Services\GeminiCvParserService;
 // Se eliminan PdfTextExtractorService y OcrTextExtractorService
 use App\Models\Skill;
@@ -141,95 +138,26 @@ class WorkerCvController extends Controller
         // --- FIN DIAGNÓSTICO ---
 
 
-        $cvData = [];
-        $extractionSource = 'gemini_pdf_multimodal';
-
-        DB::beginTransaction();
         try {
-            // LLAMADA DIRECTA AL FALLBACK DE GEMINI (MODO MULTIMODAL)
-            Log::info("Reanálisis CV: Iniciando extracción directa de PDF con Gemini Multimodal para {$user->id}.");
+            Log::info("Reanálisis CV: Iniciando reprocesamiento con Gemini Multimodal para usuario {$user->id}.");
+            $success = $geminiCvParser->analyzeCv($cv);
 
-            $cvData = $geminiCvParser->extractStructuredDataFromPdf($cvFilePath);
-
-            if (empty($cvData) || !isset($cvData['experiences'])) {
-                // Si la respuesta es vacía o incompleta, lanzamos una excepción
-                throw new \Exception("La extracción de datos estructurados de Gemini Fallback fue vacía o incompleta. El PDF podría ser ilegible por Gemini.");
+            if ($success) {
+                return response()->json([
+                    'message' => 'El CV ha sido reanalizado con éxito usando Gemini Multimodal.',
+                    'error' => false,
+                ], 200);
             }
-
-            Log::info('Reanálisis CV: Resultado de Gemini Multimodal exitoso.', [
-                'user_id' => $user->id,
-                'source' => $extractionSource,
-                'cv_data_keys' => $cvData ? array_keys($cvData) : 'NULL'
-            ]);
-
-            // 4. INSERCIÓN DE DATOS ESTRUCTURADOS (La misma lógica que antes)
-
-            $cleanDate = function ($data, $key) {
-                $value = $data[$key] ?? null;
-                if ($value === 'null' || empty($value) || strtolower($value) === 'presente') {
-                    return ($key === 'start_date') ? '1900-01-01' : null;
-                }
-                if (is_string($value) && strlen($value) === 4 && is_numeric($value)) {
-                    return $value . '-01-01';
-                }
-                return $value;
-            };
-
-
-            if ($cvData) {
-                // a. Actualizar Perfil del Trabajador
-                $profile->update([
-                    'professional_summary' => $cvData['professional_summary'] ?? null,
-                    'city' => $cvData['city'] ?? null,
-                ]);
-
-                // b. Eliminar e Insertar Experiencias
-                $profile->experiences()->delete();
-                if (isset($cvData['experiences']) && is_array($cvData['experiences'])) {
-                    foreach ($cvData['experiences'] as $experience) {
-                        Experience::create([
-                            'worker_profile_id' => $profile->id,
-                            'job_title' => $experience['title'] ?? null,
-                            'company_name' => $experience['company'] ?? null,
-                            'start_date' => $cleanDate($experience, 'start_date'),
-                            'end_date' => $cleanDate($experience, 'end_date'),
-                            'description' => $experience['description'] ?? null,
-                        ]);
-                    }
-                }
-
-                // c. Eliminar e Insertar Educación
-                $profile->educations()->delete();
-                if (isset($cvData['education']) && is_array($cvData['education'])) {
-                    foreach ($cvData['education'] as $education) {
-                        Education::create([
-                            'worker_profile_id' => $profile->id,
-                            'institution' => $education['institution'] ?? null,
-                            'degree' => $education['degree'] ?? null,
-                            'field_of_study' => $education['field_of_study'] ?? null,
-                            'start_date' => $cleanDate($education, 'start_date'),
-                            'end_date' => $cleanDate($education, 'end_date'),
-                        ]);
-                    }
-                }
-
-                // d. SINCRONIZACIÓN DE HABILIDADES, HERRAMIENTAS E IDIOMAS
-                $this->syncKnowledge($profile, $cvData);
-            }
-
-            DB::commit();
 
             return response()->json([
-                'message' => 'El CV ha sido reanalizado con éxito usando el modo Gemini Multimodal. Los datos de tu perfil han sido actualizados.',
-                'source' => $extractionSource
-            ], 200);
+                'message' => 'Gemini no pudo extraer datos completos del CV. Verifica el documento e inténtalo de nuevo.',
+                'error' => true,
+            ], 422);
         } catch (\Exception $e) {
-            DB::rollback();
-
             Log::error("Error Fatal en Reanálisis CV para {$user->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
 
             return response()->json([
-                'message' => 'Ocurrió un error crítico al procesar el CV. Causa: El archivo es inaccesible o Gemini no pudo extraer datos estructurados. Detalle: ' . $e->getMessage(),
+                'message' => 'Ocurrió un error crítico al procesar el CV. Detalle: ' . $e->getMessage(),
                 'error' => true
             ], 500);
         }
